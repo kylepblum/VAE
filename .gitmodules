@@ -1,3 +1,6 @@
 [submodule "lib/Topological-coding"]
 	path = lib/Topological-coding
 	url = https://github.com/kylepblum/Topological-coding
+[submodule "lib/neuron-table"]
+	path = lib/neuron-table
+	url = https://github.com/raeedcho/neuron-table
