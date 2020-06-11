@@ -4,7 +4,7 @@ params.monkey = 'Han';
 gridElec = spikeArray2Grid(params);
 
 %Load TD
-pathname = '/Users/kylepblum/Koofr/Limblab/Data/S1-topography/Data/';
+pathname = '~/Koofr/Limblab/Data/S1-topography/Data/';
 if strcmpi(params.monkey,'chips')
     filename{1} = [pathname 'Chips_20151211_S1-topography.mat'];
     filename{2} = [pathname 'Chips_20170913_S1-topography.mat'];
