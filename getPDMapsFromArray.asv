@@ -83,7 +83,7 @@ for filenum = 1:numel(filename)
 %     moveOnParams.end_idx = 'idx_endTime';
 %     trial_data = getMoveOnsetAndPeak(trial_data,moveOnParams);
     
-    trial_data = trimTD(trial_data,{'idx_startTime',0},{'idx_startTime',50});
+    trial_data = trimTD(trial_data,{'idx_startTime',0},{'idx_startTime',0});
     
     for i = 1:numel(trial_data)
         try
@@ -154,11 +154,11 @@ pdTable = catPDTable;
 if strcmp(PDparams.in_signals{1},'vel')
     S1_pds = pdTable.velPD(:);
     S1_mds = pdTable.velModdepth(:);
-    S1_pds = S1_pds(rad2deg(diff(pdTable.velPDCI')') < 360);
-    S1_mds = S1_mds(rad2deg(diff(pdTable.velPDCI')') < 360);
+    S1_pds = S1_pds(rad2deg(diff(pdTable.velPDCI')') < 90);
+    S1_mds = S1_mds(rad2deg(diff(pdTable.velPDCI')') < 90);
     
-    S1_pds = S1_pds(pdTable.velTuned);
-    S1_mds = S1_mds(pdTable.velTuned);
+%     S1_pds = S1_pds(pdTable.velTuned);
+%     S1_mds = S1_mds(pdTable.velTuned);
     
 elseif strcmp(PDparams.in_signals{1},'force')
     S1_pds = pdTable.forcePD(:);
@@ -379,7 +379,7 @@ cmvWrappedPDs = sum(wrappedPDs); %cumulative wrapped PDs
 cmvWrappedPD_counts = round(cmvWrappedPDs * 1e5);
 
 counts = [];
-numBins = 36;
+numBins = 72;
 binSize = length(cmvWrappedPD_counts)/numBins;
 for k = 1:numBins
     ctIdx = binSize*(k-1) + 1 : binSize*(k);

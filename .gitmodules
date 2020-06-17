@@ -5,3 +5,6 @@
 	path = lib/circ-toolbox
 	url = https://github.com/raeedcho/circ-toolbox.git
 
+[submodule "lib/neuron-table"]
+	path = lib/neuron-table
+	url = https://github.com/kylepblum/neuron-table.git
