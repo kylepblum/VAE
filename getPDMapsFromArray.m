@@ -105,27 +105,27 @@ for filenum = 1:numel(filename)
         end
     end
     
-    try
+%     try
         PDparams.out_signals = {'S1_spikes'};
         arrayInfo = trial_data(1).S1_unit_guide;
         pdTable = getTDPDs(trial_data,PDparams);
-    catch
-        try
-            PDparams.out_signals = {'area2_spikes'};
-            arrayInfo = trial_data(1).area2_unit_guide;
-            pdTable = getTDPDs(trial_data,PDparams);
-        catch
-            if strcmpi(which_array,'PMd')
-                PDparams.out_signals = {'PMd_spikes'};
-                arrayInfo = trial_data(1).PMd_unit_guide;
-                pdTable = getTDPDs(trial_data,PDparams);
-            else
-                PDparams.out_signals = {'M1_spikes'};
-                arrayInfo = trial_data(1).M1_unit_guide;
-                pdTable = getTDPDs(trial_data,PDparams);
-            end
-        end
-    end
+%     catch
+%         try
+%             PDparams.out_signals = {'area2_spikes'};
+%             arrayInfo = trial_data(1).area2_unit_guide;
+%             pdTable = getTDPDs(trial_data,PDparams);
+%         catch
+%             if strcmpi(which_array,'PMd')
+%                 PDparams.out_signals = {'PMd_spikes'};
+%                 arrayInfo = trial_data(1).PMd_unit_guide;
+%                 pdTable = getTDPDs(trial_data,PDparams);
+%             else
+%                 PDparams.out_signals = {'M1_spikes'};
+%                 arrayInfo = trial_data(1).M1_unit_guide;
+%                 pdTable = getTDPDs(trial_data,PDparams);
+%             end
+%         end
+%     end
 
     pdTable.filenum(1:size(pdTable,1)) = filenum;
     pdTable.elec = arrayInfo(:,1);
@@ -152,13 +152,15 @@ pdTable = catPDTable;
 
 
 if strcmp(PDparams.in_signals{1},'vel')
-    S1_pds = pdTable.velPD(:);
-    S1_mds = pdTable.velModdepth(:);
-    S1_pds = S1_pds(rad2deg(diff(pdTable.velPDCI')') < 360);
-    S1_mds = S1_mds(rad2deg(diff(pdTable.velPDCI')') < 360);
     
-    S1_pds = S1_pds(pdTable.velTuned);
-    S1_mds = S1_mds(pdTable.velTuned);
+    include = rad2deg(diff(pdTable.velPDCI')') < 10 & pdTable.velTuned;
+    
+    S1_pds = pdTable.velPD(include);
+    S1_mds = pdTable.velModdepth(include);
+    S1_CIs = pdTable.velPDCI(include,:);
+ 
+    
+    S1_boots = cell2mat(pdTable.velboostraps(include)');
     
 elseif strcmp(PDparams.in_signals{1},'force')
     S1_pds = pdTable.forcePD(:);
@@ -195,7 +197,7 @@ end
 %testMAP = heatmap(VAE_testGrid); colormap(vq);
 
 
-hfig3 = figure; polarhistogram(S1_pds,36)
+% hfig3 = figure; polarhistogram(S1_pds,36)
 % hfig4 = figure; polarhistogram(musVel_pds,50)
 
 
@@ -347,9 +349,9 @@ end
 
 
 %% 
-binnedPDs = zeros(size(pdTable,1),length(0:0.1:359.9)); %Preallocate array for binnedPDs
+binnedPDs = zeros(size(S1_pds,1),length(0:0.1:359.9)); %Preallocate array for binnedPDs
 
-edges = round(rad2deg(wrapTo2Pi(pdTable.velPDCI))*10)/10; % This gets first and last bin for PD CIs
+edges = round(rad2deg(wrapTo2Pi(S1_CIs))*10)/10; % This gets first and last bin for PD CIs
 
 edgesIdx = edges' * 10 + 1;
 tranEdges = edges';
@@ -367,11 +369,11 @@ wrappedPDs = binnedPDs(:,1:3600);
 rmd = length(binnedPDs) - 3600; %remainder
 wrappedPDs(:,1:rmd) = wrappedPDs(:,1:rmd) + binnedPDs(:,3601:end);
 
-
-polarplot(linspace(0,2*pi,length(sum(wrappedPDs))),smooth(sum(wrappedPDs),90));
-hold on
-polarplot(linspace(0,2*pi,length(sum(wrappedPDs))),smooth(sum(wrappedPDs),15));
+figure; 
 polarplot(linspace(0,2*pi,length(sum(wrappedPDs))),smooth(sum(wrappedPDs),1));
+% hold on
+% polarplot(linspace(0,2*pi,length(sum(wrappedPDs))),smooth(sum(wrappedPDs),15));
+% polarplot(linspace(0,2*pi,length(sum(wrappedPDs))),smooth(sum(wrappedPDs),1));
 
 
 
@@ -379,7 +381,7 @@ cmvWrappedPDs = sum(wrappedPDs); %cumulative wrapped PDs
 cmvWrappedPD_counts = round(cmvWrappedPDs * 1e5);
 
 counts = [];
-numBins = 36;
+numBins = 72;
 binSize = length(cmvWrappedPD_counts)/numBins;
 for k = 1:numBins
     ctIdx = binSize*(k-1) + 1 : binSize*(k);
@@ -389,10 +391,17 @@ end
 figure;
 polarhistogram('BinEdges',deg2rad(0:360/numBins:360),'BinCounts',counts,'Normalization','pdf')
 
-
+% Use PD bootstrap samples instead
+figure;
+polarhistogram(S1_boots,18,'Normalization','pdf','EdgeColor','none'); hold on
+polarhistogram(S1_boots,36,'Normalization','pdf','EdgeColor','none'); hold on
+polarhistogram(S1_boots,72,'Normalization','pdf','DisplayStyle','Stairs','EdgeAlpha',0.8)
+% polarhistogram(S1_boots,1152,'Normalization','pdf','DisplayStyle','Stairs','EdgeAlpha',0.3)
 
 
 
 % Classical visualization
 figure;
-polarhistogram(S1_pds,72,'normalization','pdf')
+polarhistogram(S1_pds,18,'normalization','pdf');
+polarhistogram(S1_pds,36,'normalization','pdf');
+polarhistogram(S1_pds,72,'normalization','pdf');
