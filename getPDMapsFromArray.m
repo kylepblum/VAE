@@ -1,6 +1,7 @@
 % trial_data = td;
-clear, clc
-params.monkey = 'chips';
+clc
+clearvars -except 
+params.monkey = 'duncan';
 if ~ispc
     gridElec = spikeArray2Grid(params);
 else
@@ -14,14 +15,14 @@ else
 end
 
 if strcmpi(params.monkey,'chips')
-    filename{1} = [pathname 'Chips_20151211_S1-topography.mat'];
-%     filename{2} = [pathname 'Chips_20170913_S1-topography.mat'];
+    filename{1} = [pathname 'Chips_20170913_S1-topography.mat'];
+    filename{2} = [pathname 'Chips_20151201_S1-topography.mat'];
 elseif strcmpi(params.monkey,'han')
-    filename{1} = [pathname 'Han_20160325_S1-topography.mat'];
-    filename{2} = [pathname 'Han_20171106_S1-topography.mat'];
+    filename{1} = [pathname 'Han_20171207_S1-topography.mat'];
+    filename{2} = [pathname 'Han_20170203_S1-topography.mat'];
 elseif strcmpi(params.monkey,'duncan')
-    filename{1} = [pathname 'Duncan_20190515_S1-topography.mat'];
-    filename{2} = [pathname 'Duncan_20190524_S1-topography.mat'];
+    filename{1} = [pathname 'Duncan_20191105_S1-topography.mat'];
+    filename{2} = [pathname 'Duncan_20190710_S1-topography.mat'];
 elseif strcmpi(params.monkey,'allS1')
     filename{1} = [pathname 'Chips_20151211_S1-topography.mat'];
     filename{2} = [pathname 'Chips_20170913_S1-topography.mat'];
@@ -63,18 +64,15 @@ for filenum = 1:numel(filename)
     %Get speed
     trial_data.vel_norm = sqrt(trial_data.vel(:,1).^2 + trial_data.vel(:,2).^2);
     
-%     %Remove offset
-%     trial_data.pos(:,1) = trial_data.pos(:,1)+0;
-%     trial_data.pos(:,2) = trial_data.pos(:,2)+32;
     
     %Split TD
     splitParams.split_idx_name = 'idx_startTime';
-    splitParams.linked_fields = {'result'};
+    splitParams.linked_fields = {'result','bumpDir','tgtDir'};
     trial_data = splitTD(trial_data,splitParams);
     
-%     trial_data(isnan([trial_data.idx_goCueTime])) = [];
-%     trial_data(strfind([trial_data.result],'I')) = [];
-%     trial_data(strfind([trial_data.result],'F')) = [];
+    
+    nonBumpTrials = isnan([trial_data.bumpDir]);
+    trial_data = trial_data(nonBumpTrials);
     
     PDparams.in_signals = {'vel',1:2};
     PDparams.num_boots = 50;
@@ -83,7 +81,7 @@ for filenum = 1:numel(filename)
 %     moveOnParams.end_idx = 'idx_endTime';
 %     trial_data = getMoveOnsetAndPeak(trial_data,moveOnParams);
     
-    trial_data = trimTD(trial_data,{'idx_startTime',0},{'idx_startTime',50});
+    trial_data = trimTD(trial_data,{'idx_startTime',0},{'idx_endTime',0});
     
     for i = 1:numel(trial_data)
         try
@@ -153,14 +151,14 @@ pdTable = catPDTable;
 
 if strcmp(PDparams.in_signals{1},'vel')
     
-    include = rad2deg(diff(pdTable.velPDCI')') < 10 & pdTable.velTuned;
+    include = rad2deg(diff(pdTable.velPDCI')') < 360 & pdTable.velTuned;
     
     S1_pds = pdTable.velPD(include);
     S1_mds = pdTable.velModdepth(include);
     S1_CIs = pdTable.velPDCI(include,:);
- 
+    gridIdx = pdTable.gridIdx(include,:);
     
-    S1_boots = cell2mat(pdTable.velboostraps(include)');
+%     S1_boots = cell2mat(pdTable.velbootstraps(include)');
     
 elseif strcmp(PDparams.in_signals{1},'force')
     S1_pds = pdTable.forcePD(:);
@@ -197,7 +195,7 @@ end
 %testMAP = heatmap(VAE_testGrid); colormap(vq);
 
 
-% hfig3 = figure; polarhistogram(S1_pds,36)
+hfig3 = figure; polarhistogram(S1_pds,18)
 % hfig4 = figure; polarhistogram(musVel_pds,50)
 
 
@@ -205,7 +203,7 @@ end
 
 %% Calculate distances
 j = 0;
-for nh_shape = [0.1 1 2] %Neighborhood shape (2x2 square)
+for nh_shape = [0.1] %Neighborhood shape (2x2 square)
     j = j+1;
     allDiffNeighborPDs = [];
     allDiffOtherPDs = [];
@@ -214,11 +212,11 @@ for nh_shape = [0.1 1 2] %Neighborhood shape (2x2 square)
     neighborIdx2 = fliplr(neighborIdx1);
     neighborIdx = [neighborIdx1; neighborIdx2];
     
-    gridIdx = pdTable.gridIdx;
+    gridIdx = gridIdx;
     for unit = 1:size(S1_pds)
         neighborPDs = [];
         thisPD = S1_pds(unit);
-        thisIdx = pdTable.gridIdx(unit,:);
+        thisIdx = gridIdx(unit,:);
         gridRelIdx = gridIdx - thisIdx;
         posNeighborhood = [];
         
